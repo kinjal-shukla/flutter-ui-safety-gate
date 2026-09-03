@@ -1,0 +1,22 @@
+{
+  "name": "flutter-ui-safety-gate",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/run_tests.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Flutter layout safety and type casting validation MCP server.",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "dotenv": "^17.4.2",
+    "fs-extra": "^11.4.0",
+    "glob": "^13.0.6",
+    "openai": "^7.5.0",
+    "zod": "^4.4.3"
+  }
+}
