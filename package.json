@@ -3,14 +3,28 @@
   "version": "1.0.0",
   "type": "module",
   "main": "server.js",
+  "bin": {
+    "flutter-ui-safety-gate": "server.js"
+  },
   "scripts": {
     "start": "node server.js",
     "test": "node test/run_tests.js"
   },
-  "keywords": [],
+  "keywords": [
+    "flutter",
+    "dart",
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "cursor",
+    "git-hooks",
+    "code-quality",
+    "static-analysis",
+    "ui-safety"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "Flutter layout safety and type casting validation MCP server.",
+  "description": "Flutter UI Safety Gate — AI-native code quality enforcer for Flutter projects. Plug into Claude, Cursor or any MCP-compatible tool to catch layout bugs, memory leaks and null safety violations before they ship.",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "dotenv": "^17.4.2",

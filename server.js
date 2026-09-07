@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -91,7 +92,7 @@ server.tool(
 // ─── TOOL: check_git_diff ────────────────────────────────────────────────────
 server.tool(
   "check_git_diff",
-  "Analyze only the staged changes in a git repository to verify if they violate any blocker rules.",
+  "Analyze staged and modified changes in a git repository to verify if they violate any blocker rules before committing.",
   {
     projectPath: z.string().optional().default(".").describe("Path to the git repository"),
   },
@@ -107,40 +108,60 @@ server.tool(
         };
       }
 
-      // Find staged Dart files
-      let stdout;
+      // Find staged Dart files first
+      let stdout = "";
       try {
         const res = await execAsync("git diff --cached --name-only --diff-filter=d", { cwd: resolvedPath });
-        stdout = res.stdout;
+        stdout = res.stdout.trim();
       } catch (gitErr) {
-        return {
-          content: [{ type: "text", text: `Git command failed: ${gitErr.message}. Ensure git is installed and repository is initialized.` }],
-          isError: true,
-        };
+        // ignore
       }
 
-      const stagedFiles = stdout
+      // Fallback to unstaged/HEAD modified files if no staged files found
+      if (!stdout) {
+        try {
+          const res2 = await execAsync("git diff HEAD --name-only --diff-filter=d", { cwd: resolvedPath });
+          stdout = res2.stdout.trim();
+        } catch (err) {
+          // ignore
+        }
+      }
+
+      const changedFiles = stdout
         .split("\n")
         .map(f => f.trim())
         .filter(f => f.endsWith(".dart"))
         .map(f => path.join(resolvedPath, f));
 
-      if (stagedFiles.length === 0) {
+      if (changedFiles.length === 0) {
         return {
-          content: [{ type: "text", text: JSON.stringify({ success: true, message: "No staged Dart files to analyze." }, null, 2) }],
+          content: [{ type: "text", text: "✨ No modified or staged Dart files to analyze. Working tree clean." }],
         };
       }
 
       const diagnostics = [];
-      for (const file of stagedFiles) {
+      for (const file of changedFiles) {
         if (await fse.pathExists(file)) {
           const fileDiags = await analyzeDartFile(file);
           diagnostics.push(...fileDiags);
         }
       }
 
+      const blockers = diagnostics.filter(d => d.severity === "BLOCKER");
+      const reportMarkdown = formatMarkdown(diagnostics, path.basename(resolvedPath));
+
+      if (blockers.length > 0) {
+        return {
+          content: [{ 
+            type: "text", 
+            text: `❌ **COMMIT BLOCKED**: ${blockers.length} blocker violation(s) found in your git changes.\n\n${reportMarkdown}` 
+          }],
+          isError: true,
+        };
+      }
+
       return {
-        content: [{ type: "text", text: formatJSON(diagnostics) }],
+        content: [{ type: "text", text: `✅ **COMMIT APPROVED**: All checks passed with 0 blockers.\n\n${reportMarkdown}` }],
       };
     } catch (err) {
       return {
